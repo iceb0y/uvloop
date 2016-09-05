@@ -47,8 +47,12 @@ cdef class Loop:
         bint _thread_is_main
         bint _sigint_check
 
-        SignalsStack py_signals
-        SignalsStack uv_signals
+        IF UNAME_SYSNAME == "Windows":
+            # TODO(iceboy): Signal equivalence on windows?
+            pass
+        ELSE:
+            SignalsStack py_signals
+            SignalsStack uv_signals
         bint _executing_py_code
 
         object _task_factory
@@ -202,4 +206,8 @@ include "handles/udp.pxd"
 
 include "server.pxd"
 
-include "os_signal.pxd"
+IF UNAME_SYSNAME == "Windows":
+    # TODO(iceboy): Signal equivalence on windows?
+    pass
+ELSE:
+    include "os_signal.pxd"

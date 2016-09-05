@@ -89,6 +89,13 @@ class libuv_build_ext(build_ext):
             self.compiler.add_library('kvm')
         elif sys.platform.startswith('sunos'):
             self.compiler.add_library('kstat')
+        elif sys.platform == 'win32':
+            self.compiler.add_library('advapi32')
+            self.compiler.add_library('iphlpapi')
+            self.compiler.add_library('psapi')
+            self.compiler.add_library('user32')
+            self.compiler.add_library('userenv')
+            self.compiler.add_library('ws2_32')
 
         super().build_extensions()
 

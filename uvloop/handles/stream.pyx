@@ -333,40 +333,45 @@ cdef class UVStream(UVBaseTransport):
             return 0
 
         fd = self._fileno()
-        # Use `unistd.h/write` directly, it's faster than
-        # uv_try_write -- less layers of code.  The error
-        # checking logic is copied from libuv.
-        written = system.write(fd, buf, blen)
-        while written == -1 and (errno.errno == errno.EINTR or
-                                 (system.PLATFORM_IS_APPLE and
-                                    errno.errno == errno.EPROTOTYPE)):
-            # From libuv code (unix/stream.c):
-            #   Due to a possible kernel bug at least in OS X 10.10 "Yosemite",
-            #   EPROTOTYPE can be returned while trying to write to a socket
-            #   that is shutting down. If we retry the write, we should get
-            #   the expected EPIPE instead.
-            written = system.write(fd, buf, blen)
-        saved_errno = errno.errno
 
-        if used_buf:
-            PyBuffer_Release(&py_buf)
-
-        if written < 0:
-            if saved_errno == errno.EAGAIN or \
-                    saved_errno == system.EWOULDBLOCK:
-                return -1
-            else:
-                exc = convert_error(-saved_errno)
-                self._fatal_error(exc, True)
-                return
-
-        IF DEBUG:
-            self._loop._debug_stream_write_tries += 1
-
-        if <size_t>written == blen:
+        IF UNAME_SYSNAME == "Windows":
+            # TODO(iceboy): Support windows.
             return 0
+        ELSE:
+            # Use `unistd.h/write` directly, it's faster than
+            # uv_try_write -- less layers of code.  The error
+            # checking logic is copied from libuv.
+            written = system.write(fd, buf, blen)
+            while written == -1 and (errno.errno == errno.EINTR or
+                                     (system.PLATFORM_IS_APPLE and
+                                        errno.errno == errno.EPROTOTYPE)):
+                # From libuv code (unix/stream.c):
+                #   Due to a possible kernel bug at least in OS X 10.10 "Yosemite",
+                #   EPROTOTYPE can be returned while trying to write to a socket
+                #   that is shutting down. If we retry the write, we should get
+                #   the expected EPIPE instead.
+                written = system.write(fd, buf, blen)
+            saved_errno = errno.errno
 
-        return written
+            if used_buf:
+                PyBuffer_Release(&py_buf)
+
+            if written < 0:
+                if saved_errno == errno.EAGAIN or \
+                        saved_errno == system.EWOULDBLOCK:
+                    return -1
+                else:
+                    exc = convert_error(-saved_errno)
+                    self._fatal_error(exc, True)
+                    return
+
+            IF DEBUG:
+                self._loop._debug_stream_write_tries += 1
+
+            if <size_t>written == blen:
+                return 0
+
+            return written
 
     cdef inline _write(self, object data):
         cdef int dlen

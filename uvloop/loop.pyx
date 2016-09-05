@@ -73,14 +73,18 @@ cdef class Loop:
         self._timers = set()
         self._polls = dict()
 
-        if MAIN_THREAD_ID == PyThread_get_thread_ident():  # XXX
-            self.py_signals = SignalsStack()
-            self.uv_signals = SignalsStack()
+        IF UNAME_SYSNAME == "Windows":
+            # TODO(iceboy): Signal equivalence on windows?
+            pass
+        ELSE:
+            if MAIN_THREAD_ID == PyThread_get_thread_ident():  # XXX
+                self.py_signals = SignalsStack()
+                self.uv_signals = SignalsStack()
 
-            self.py_signals.save()
-        else:
-            self.py_signals = None
-            self.uv_signals = None
+                self.py_signals.save()
+            else:
+                self.py_signals = None
+                self.uv_signals = None
 
         self._executing_py_code = 0
 
@@ -219,8 +223,12 @@ cdef class Loop:
         self._stop(SystemExit())
 
     cdef _check_sigint(self):
-        self.uv_signals.save()
-        __signal_set_sigint()
+        IF UNAME_SYSNAME == "Windows":
+            # TODO(iceboy): __signal_set_sigint() on windows?
+            pass
+        ELSE:
+            self.uv_signals.save()
+            __signal_set_sigint()
 
     cdef _on_idle(self):
         cdef:
@@ -282,9 +290,13 @@ cdef class Loop:
     cdef __run(self, uv.uv_run_mode mode):
         global __main_loop__
 
-        if self.py_signals is not None:
-            # self.py_signals is not None only for the main thread
-            __main_loop__ = self
+        IF UNAME_SYSNAME == "Windows":
+            # TODO(iceboy): Signal equivalence on windows?
+            pass
+        ELSE:
+            if self.py_signals is not None:
+                # self.py_signals is not None only for the main thread
+                __main_loop__ = self
 
         self._executing_py_code = 0
         # Although every UVHandle holds a reference to the loop,
@@ -297,10 +309,14 @@ cdef class Loop:
         Py_DECREF(self)
         self._executing_py_code = 1
 
-        if self.py_signals is not None:
-            # self.py_signals is not None only for the main thread
-            self.py_signals.restore()
-            __main_loop__ = None
+        IF UNAME_SYSNAME == "Windows":
+            # TODO(iceboy): Signal equivalence on windows?
+            pass
+        ELSE:
+            if self.py_signals is not None:
+                # self.py_signals is not None only for the main thread
+                self.py_signals.restore()
+                __main_loop__ = None
 
         if err < 0:
             raise convert_error(err)
@@ -2392,7 +2408,11 @@ include "handles/udp.pyx"
 
 include "server.pyx"
 
-include "os_signal.pyx"
+IF UNAME_SYSNAME == "Windows":
+    # TODO(iceboy): Signal equivalence on windows?
+    pass
+ELSE:
+    include "os_signal.pyx"
 
 include "future.pyx"
 include "chain_futs.pyx"
@@ -2423,12 +2443,16 @@ cdef __install_atfork():
         return
     __atfork_installed = 1
 
-    cdef int err
+    IF UNAME_SYSNAME == "Windows":
+        # TODO(iceboy): Need atfork in windows?
+        pass
+    ELSE:
+        cdef int err
 
-    err = system.pthread_atfork(NULL, NULL, &__atfork_child)
-    if err:
-        __atfork_installed = 0
-        raise convert_error(-err)
+        err = system.pthread_atfork(NULL, NULL, &__atfork_child)
+        if err:
+            __atfork_installed = 0
+            raise convert_error(-err)
 
 
 # Install PyMem* memory allocators
