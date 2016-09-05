@@ -5,8 +5,6 @@ import sys
 import unittest
 
 
-if sys.platform in ('win32', 'cygwin', 'cli'):
-    raise RuntimeError('uvloop does not support Windows at the moment')
 if sys.version_info < (3, 5):
     raise RuntimeError('uvloop requires Python 3.5 or greater')
 
@@ -73,7 +71,10 @@ class libuv_build_ext(build_ext):
                 # Support macports on Mac OS X.
                 self.compiler.add_include_dir('/opt/local/include')
         else:
-            libuv_lib = os.path.join(LIBUV_DIR, '.libs', 'libuv.a')
+            if sys.platform != 'win32':
+                libuv_lib = os.path.join(LIBUV_DIR, '.libs', 'libuv.a')
+            else:
+                libuv_lib = os.path.join(LIBUV_DIR, 'Release', 'lib', 'libuv.lib')
             if not os.path.exists(libuv_lib):
                 self.build_libuv()
             if not os.path.exists(libuv_lib):
