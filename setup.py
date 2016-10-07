@@ -42,7 +42,7 @@ class libuv_build_ext(build_ext):
         if not re.search('-O\d', cur_cflags):
             cur_cflags += ' -O2'
 
-        env['CFLAGS'] = (cur_cflags + ' -fPIC' + env.get('ARCHFLAGS', ''))
+        env['CFLAGS'] = (cur_cflags + ' -fPIC ' + env.get('ARCHFLAGS', ''))
 
         j_flag = '-j{}'.format(os.cpu_count() or 1)
 
@@ -108,7 +108,7 @@ setup(
     author='Yury Selivanov',
     author_email='yury@magic.io',
     platforms=['*nix'],
-    version='0.5.3',
+    version='0.5.4',
     packages=['uvloop'],
     cmdclass={'build_ext': libuv_build_ext},
     ext_modules=[
